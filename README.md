@@ -11,3 +11,8 @@ Before running any playbooks make sure you will use a base CentOS6 (or SL6 or RH
 
 Optional packages (depending on your needs) may also be installed beforehand (i.e. vim-enchanced, screen, ruby etc). 
 
+Edit inventory, variable files and configuration files (i.e. static files etc) before running. 
+
+To deploy run:
+
+# ansible-playbook -v broker.yml
