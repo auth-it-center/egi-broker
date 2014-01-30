@@ -1,0 +1,53 @@
+- name: Install BDII core package
+  yum: name=bdii state=present
+
+- name: Install glite-info-provider-service package
+  yum: name=glite-info-provider-service state=present
+
+- name: Copy glite-info-service-activemq configuration file
+  tags: configure
+  copy: src=etc/glite/glite-info-service-activemq
+        dest=/etc/glite/glite-info-service-activemq backup=no
+        owner=root group=root mode=0755
+  notify:
+    - restart bdii
+
+- name: Copy gip configuration files to target
+  tags: configure
+  copy: src=etc/glite/info/service/{{ item }}.conf
+        dest=/etc/glite/info/service/{{ item }}.conf backup=no
+        owner=root group=root mode=0644
+  with_items: 
+    - glite-info-service-activemq-openwire
+    - glite-info-service-activemq-openwire-ssl
+    - glite-info-service-activemq-stomp
+    - glite-info-service-activemq-stomp-ssl
+  notify:
+    - restart bdii
+
+- name: Create gip variables configuration file
+  tags: configure
+  template: src=etc/sysconfig/activemq_gip_provider.j2
+            dest=/etc/sysconfig/activemq_gip_provider backup=no
+            owner=root group=root mode=0644
+  notify:
+    - restart bdii
+
+- name: Copy gip wrapper files to target
+  tags: configure
+  copy: src=var/lib/bdii/gip/provider/{{ item }}
+        dest=/var/lib/bdii/gip/provider/{{ item }} backup=no
+        owner=ldap group=ldap mode=0755
+  with_items: 
+    - glite-info-provider-service-activemq-openwire-wrapper
+    - glite-info-provider-service-activemq-openwire-ssl-wrapper
+    - glite-info-provider-service-activemq-stomp-wrapper
+    - glite-info-provider-service-activemq-stomp-ssl-wrapper
+  notify:
+    - restart bdii
+
+- name: Ensure port 2170 for resource BDII is open
+  tags: configure_iptables
+  command: /usr/sbin/lokkit ${lokkit_flags} -p 2170:tcp
+  notify:
+    - restart iptables

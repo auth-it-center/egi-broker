@@ -1,0 +1,7 @@
+
+[brokers]
+broker01.localdomain
+
+[umd3:children]
+brokers
+

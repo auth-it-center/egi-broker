@@ -1,0 +1,182 @@
+---
+
+- name: Deploy the Puppetlabs deps Repository
+  copy: src=etc/yum.repos.d/puppetlabs.repo.${ansible_distribution}-${ansible_lsb.major_release}
+        dest=/etc/yum.repos.d/puppetlabs.repo
+        owner=root group=root mode=0644
+
+- name: Install ActiveMQ broker package
+  yum: name=activemq-5.8.0 enablerepo=puppetlabs-deps state=latest disable_gpg_check=yes
+
+- name: Deploy the tom-mig-devel repo
+  copy: src=etc/yum.repos.d/tom-mig-devel.repo.${ansible_distribution}-${ansible_lsb.major_release}
+        dest=/etc/yum.repos.d/tom-mig-devel.repo  backup=no
+        owner=root group=root mode=0644
+
+- name: Install mbcg-utils package
+  yum: name=mbcg-utils enablerepo=tom-mig-devel state=present
+
+- name: Create /etc/activemq/groups.properties.d directory
+  tags: configure_directories
+  file: path=/etc/activemq/groups.properties.d owner=root group=root mode=0755 state=directory
+
+- name: Create /etc/activemq/dns.properties.d directory
+  tags: configure_directories
+  file: path=/etc/activemq/dns.properties.d owner=root group=root mode=0755 state=directory
+
+- name: Create /etc/activemq/users.properties.d directory
+  tags: configure_directories
+  file: path=/etc/activemq/users.properties.d owner=root group=root mode=0755 state=directory
+
+- name: Create /var/lib/activemq/bin directory
+  tags: configure_directories
+  file: path=/var/lib/activemq/bin owner=root group=root mode=0755 state=directory
+
+- name: Create /usr/share/activemq/schema directory
+  tags: configure_directories
+  file: path=/usr/share/activemq/schema owner=root group=root mode=0755 state=directory
+
+- name: Copy /var/lib/activemq/bin/apel-sync script
+  tags: copy_utils
+  copy: src=var/lib/activemq/bin/apel-sync
+        dest=/var/lib/activemq/bin/apel-sync backup=no
+        owner=root group=root mode=0755
+
+- name: Copy /var/lib/activemq/bin/purge-broker script
+  tags: copy_utils
+  copy: src=var/lib/activemq/bin/purge-broker
+        dest=/var/lib/activemq/bin/purge-broker backup=no
+        owner=root group=root mode=0755
+
+- name: Copy /var/lib/activemq/bin/update-jaas script
+  tags: copy_utils
+  copy: src=var/lib/activemq/bin/update-jaas
+        dest=/var/lib/activemq/bin/update-jaas backup=no
+        owner=root group=root mode=0755
+
+- name: Copy /var/lib/activemq/bin/update-keystore script
+  tags: copy_utils
+  copy: src=var/lib/activemq/bin/update-keystore
+        dest=/var/lib/activemq/bin/update-keystore backup=no
+        owner=root group=root mode=0755
+
+- name: Copy /etc/activemq/dns.properties.d/static file
+  tags: configure
+  copy: src=etc/activemq/dns.properties.d/static/
+        dest=/etc/activemq/dns.properties.d/static backup=yes
+        owner=root group=root mode=0644
+  notify:
+    - rerun jaas
+
+- name: Copy /etc/activemq/groups.properties.d/static file
+  tags: configure
+  copy: src=etc/activemq/groups.properties.d/static/
+        dest=/etc/activemq/groups.properties.d/static backup=yes
+        owner=root group=root mode=0644
+  notify:
+    - rerun jaas
+
+- name: Copy /etc/activemq/users.properties.d/static file
+  tags: configure
+  copy: src=etc/activemq/users.properties.d/static/
+        dest=/etc/activemq/users.properties.d/static backup=yes
+        owner=root group=root mode=0644
+  notify:
+    - rerun jaas
+
+- name: Copy ActiveMQ webconsole configuration file
+  tags: configure
+  copy: src=etc/httpd/conf.d/activemq-webconsole.conf
+        dest=/etc/httpd/conf.d/activemq-webconsole.conf backup=yes
+        owner=root group=root mode=0644
+  notify:
+    - restart httpd
+
+- name: Copy ActiveMQ jmx4perl configuration file
+  tags: configure
+  copy: src=etc/httpd/conf.d/activemq-jmx4perl.conf
+        dest=/etc/httpd/conf.d/activemq-jmx4perl.conf backup=yes
+        owner=root group=root mode=0644
+  notify:
+    - restart httpd
+
+- name: Copy ActiveMQ webconsole users file
+  tags: configure
+  copy: src=etc/httpd/activemq-webconsole.users
+        dest=/etc/httpd/activemq-webconsole.users backup=yes
+        owner=root group=root mode=0644
+  notify:
+    - restart httpd
+
+- name: Create file apel-sync under /etc/cron.d
+  tags: install_crons
+  cron: name="apel-sync" minute="0" hour="*/4" job="/var/lib/activemq/bin/apel-sync -o /var/lib/activemq/etc/dns.properties.d/apel-sync -u 'gocdb://goc.egi.eu/gocdbpi/public/?method=get_service_endpoint&service_type=gLite-APEL' -j /var/lib/activemq/bin >> /var/lib/activemq/log/apel-sync" user="root" cron_file=apel-sync
+
+- name: Create file broker-purge under /etc/cron.d
+  tags: install_crons
+  cron: name="broker-purge" minute="50" job="/var/lib/activemq/bin/purge-broker" user="activemq" cron_file=broker-purge
+  
+- name: Copy /usr/share/activemq/schema/MIG.xsd script
+  tags: configure
+  copy: src=usr/share/activemq/schema/MIG.xsd
+        dest=/usr/share/activemq/schema/MIG.xsd backup=no
+        owner=root group=root mode=0755
+
+- name: Copy /usr/share/activemq/lib/oat-activemq-patches-1.0.6.jar file
+  tags: configure
+  copy: src=usr/share/activemq/lib/oat-activemq-patches-1.0.6.jar
+        dest=/usr/share/activemq/lib/oat-activemq-patches-1.0.6.jar backup=no
+        owner=root group=root mode=0644
+
+- name: Copy /etc/activemq/login.config
+  tags: configure
+  copy: src=etc/activemq/login.config
+        dest=/etc/activemq/login.config backup=yes
+        owner=root group=root mode=0644
+  notify: 
+    - restart broker
+
+- name: Copy /etc/activemq/jmx.access
+  tags: configure
+  copy: src=etc/activemq/jmx.access
+        dest=/etc/activemq/jmx.access backup=yes
+        owner=root group=root mode=0644
+  notify: 
+    - restart broker
+
+- name: Copy /etc/activemq/jmx.password
+  tags: configure
+  copy: src=etc/activemq/jmx.password
+        dest=/etc/activemq/jmx.password backup=yes
+        owner=root group=root mode=0644
+  notify: 
+    - restart broker
+
+- name: Copy activemq-wrapper.conf file
+  tags: configure
+  template: src=etc/activemq/activemq-wrapper.conf.j2
+            dest=/etc/activemq/activemq-wrapper.conf backup=yes
+            owner=root group=root mode=0644
+  notify:
+    - restart broker
+
+- name: Copy activemq.xml file
+  tags: configure
+  tags: xml
+  template: src=etc/activemq/activemq.xml.j2
+            dest=/etc/activemq/activemq.xml backup=yes
+            owner=root group=root mode=0644
+  notify:
+    - restart broker
+
+- name: Ensure ports  are open
+  tags: configure_iptables
+  action: command /usr/sbin/lokkit ${lokkit_flags} -p {{ item }}:tcp
+  with_items:
+    - 6162
+    - 6163
+    - 6166
+    - 6167
+    - 62001
+  notify:
+    - restart iptables

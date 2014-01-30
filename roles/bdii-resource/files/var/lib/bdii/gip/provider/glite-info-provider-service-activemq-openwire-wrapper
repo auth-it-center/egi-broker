@@ -1,0 +1,7 @@
+#!/bin/sh
+export MSG_PORT=6166
+
+source /etc/sysconfig/activemq_gip_provider
+
+glite-info-service /etc/glite/info/service/glite-info-service-activemq-openwire.conf $SITENAME
+glite-info-glue2-simple /etc/glite/info/service/glite-info-service-activemq-openwire.conf $SITENAME

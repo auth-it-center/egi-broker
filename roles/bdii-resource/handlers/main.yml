@@ -1,0 +1,2 @@
+- name: restart bdii
+  service: name=bdii state=restarted

@@ -1,0 +1,11 @@
+---
+- hosts: brokers
+  user: root
+  roles:
+    - common
+    - httpd
+    - umd
+    - ca_bundle
+    - has_certificate
+    - bdii-resource
+    - broker

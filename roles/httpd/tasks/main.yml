@@ -1,0 +1,14 @@
+- name: Install Apache webserver package
+  yum: name=httpd state=present
+
+- name: Install mod_ssl for Apache
+  yum: name=mod_ssl state=present
+
+- name: Ensure ports 80,443 are open
+  tags: configure_iptables
+  action: command /usr/sbin/lokkit -p {{ item }}:tcp
+  with_items:
+    - 80
+    - 443
+  notify:
+    - restart iptables

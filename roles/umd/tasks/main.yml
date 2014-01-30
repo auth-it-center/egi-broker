@@ -1,0 +1,6 @@
+- name: Download umd release package
+  get_url: url=${umd[${ansible_lsb.major_release}]} dest=/tmp/umd.rpm mode=0644
+
+- name: Install umd release package
+  command: yum install -y /tmp/umd.rpm creates=/etc/yum.repos.d/UMD-${umd_major_release}-base.repo  
+

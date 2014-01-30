@@ -1,0 +1,17 @@
+---
+
+- name: Copy host x509 certificate into /etc/grid-security
+  tags: certificate
+  copy: src=etc/grid-security/hostcert.pem
+        dest=/etc/grid-security/hostcert.pem backup=yes
+        owner=root group=root mode=0644
+  notify:
+    - rerun keystore
+
+- name: Copy host x509 private key into /etc/grid-security
+  tags: certificate
+  copy: src=etc/grid-security/hostkey.pem
+        dest=/etc/grid-security/hostkey.pem backup=yes
+        owner=root group=root mode=0400
+  notify:
+    - rerun keystore

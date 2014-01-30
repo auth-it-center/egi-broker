@@ -1,0 +1,6 @@
+---
+
+brokers_in_my_network:
+  - broker02.localdomain
+  - broker01.otherdomain
+  - broker02.otherdomain

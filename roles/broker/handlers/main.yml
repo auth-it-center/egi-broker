@@ -1,0 +1,16 @@
+---
+
+- name: restart broker
+  service: name=activemq state=restarted
+  notify:
+    - restart httpd
+
+- name: rerun jaas
+  command: /var/lib/activemq/bin/update-jaas
+  notify:
+    - restart broker
+
+- name: rerun keystore
+  command: /var/lib/activemq/bin/update-keystore
+  notify:
+    - restart broker
