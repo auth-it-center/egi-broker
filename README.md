@@ -15,4 +15,4 @@ Edit inventory, variable files and configuration files (i.e. static files etc) b
 
 To deploy run:
 
-# ansible-playbook -v broker.yml
+`ansible-playbook -v broker.yml`
