@@ -4,4 +4,4 @@ export MSG_PORT=6167
 source /etc/sysconfig/activemq_gip_provider
 
 glite-info-service /etc/glite/info/service/glite-info-service-activemq-openwire-ssl.conf $SITENAME
-glite-info-glue2-simple/etc/glite/info/service/glite-info-service-activemq-openwire-ssl.conf $SITENAME
+glite-info-glue2-simple /etc/glite/info/service/glite-info-service-activemq-openwire-ssl.conf $SITENAME

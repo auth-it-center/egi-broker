@@ -2,11 +2,14 @@
 
 - name: Deploy the Puppetlabs deps Repository
   copy: src=etc/yum.repos.d/puppetlabs.repo.${ansible_distribution}-${ansible_lsb.major_release}
-        dest=/etc/yum.repos.d/puppetlabs.repo
+        dest=/etc/yum.repos.d/puppetlabs.repo backup=no
         owner=root group=root mode=0644
 
 - name: Install ActiveMQ broker package
   yum: name=activemq-5.8.0 enablerepo=puppetlabs-deps state=latest disable_gpg_check=yes
+
+- name: Install mod_ssl for Apache
+  yum: name=mod_ssl state=latest
 
 - name: Deploy the tom-mig-devel repo
   copy: src=etc/yum.repos.d/tom-mig-devel.repo.${ansible_distribution}-${ansible_lsb.major_release}
@@ -27,6 +30,36 @@
 - name: Create /etc/activemq/users.properties.d directory
   tags: configure_directories
   file: path=/etc/activemq/users.properties.d owner=root group=root mode=0755 state=directory
+
+- name: Create java io tmp directory under additional super fast storage device
+  tags: configure_directories
+  file: path={{ additional_storage }}/tmp owner=activemq group=activemq mode=0755 state=directory
+  when: additional_storage is defined
+
+- name: Create java io tmp directory link from activemq_base
+  tags: configure_directories
+  file: src={{ additional_storage }}/tmp dest=/usr/share/activemq/tmp owner=root group=root state=link
+  when: additional_storage is defined
+
+- name: Create tmp directory when additional super fast storage device is not present
+  tags: configure_directories
+  file: path=/usr/share/activemq/tmp owner=activemq group=activemq mode=0755 state=directory
+  when: additional_storage is not defined
+
+- name: Create data directory under additional super fast storage device
+  tags: configure_directories
+  file: path={{ additional_storage }}/data owner=activemq group=activemq mode=0755 state=directory
+  when: additional_storage is defined
+
+- name: Create data directory link from /var/lib/activemq folder
+  tags: configure_directories
+  file: src={{ additional_storage }}/data dest=/var/lib/activemq/data owner=root group=root state=link
+  when: additional_storage is defined
+
+- name: Create data directory when additional super fast storage device is not present
+  tags: configure_directories
+  file: path=/var/lib/activemq/data owner=activemq group=activemq mode=0755 state=directory
+  when: additional_storage is not defined
 
 - name: Create /var/lib/activemq/bin directory
   tags: configure_directories
@@ -56,13 +89,13 @@
 
 - name: Copy /var/lib/activemq/bin/update-keystore script
   tags: copy_utils
-  copy: src=var/lib/activemq/bin/update-keystore
-        dest=/var/lib/activemq/bin/update-keystore backup=no
+  template: src=var/lib/activemq/bin/update-keystore.j2
+        dest=/var/lib/activemq/bin/update-keystore backup=yes
         owner=root group=root mode=0755
 
 - name: Copy /etc/activemq/dns.properties.d/static file
   tags: configure
-  copy: src=etc/activemq/dns.properties.d/static/
+  copy: src=etc/activemq/dns.properties.d/static
         dest=/etc/activemq/dns.properties.d/static backup=yes
         owner=root group=root mode=0644
   notify:
@@ -70,7 +103,7 @@
 
 - name: Copy /etc/activemq/groups.properties.d/static file
   tags: configure
-  copy: src=etc/activemq/groups.properties.d/static/
+  copy: src=etc/activemq/groups.properties.d/static
         dest=/etc/activemq/groups.properties.d/static backup=yes
         owner=root group=root mode=0644
   notify:
@@ -78,7 +111,7 @@
 
 - name: Copy /etc/activemq/users.properties.d/static file
   tags: configure
-  copy: src=etc/activemq/users.properties.d/static/
+  template: src=etc/activemq/users.properties.d/static.j2
         dest=/etc/activemq/users.properties.d/static backup=yes
         owner=root group=root mode=0644
   notify:
@@ -92,13 +125,14 @@
   notify:
     - restart httpd
 
-- name: Copy ActiveMQ jmx4perl configuration file
-  tags: configure
-  copy: src=etc/httpd/conf.d/activemq-jmx4perl.conf
-        dest=/etc/httpd/conf.d/activemq-jmx4perl.conf backup=yes
-        owner=root group=root mode=0644
-  notify:
-    - restart httpd
+#### Not sure whether we need this one (pkoro)
+####- name: Copy ActiveMQ jmx4perl configuration file
+####  tags: configure
+####  copy: src=etc/httpd/conf.d/activemq-jmx4perl.conf
+####        dest=/etc/httpd/conf.d/activemq-jmx4perl.conf backup=yes
+####        owner=root group=root mode=0644
+####  notify:
+####    - restart httpd
 
 - name: Copy ActiveMQ webconsole users file
   tags: configure
@@ -107,6 +141,48 @@
         owner=root group=root mode=0644
   notify:
     - restart httpd
+
+- name: Copy glite-info-service-activemq configuration file
+  tags: configure
+  copy: src=etc/glite/glite-info-service-activemq
+        dest=/etc/glite/glite-info-service-activemq backup=no
+        owner=root group=root mode=0755
+  notify:
+    - restart bdii
+
+- name: Create gip variables configuration file
+  tags: configure
+  template: src=etc/sysconfig/activemq_gip_provider.j2
+            dest=/etc/sysconfig/activemq_gip_provider backup=no
+            owner=root group=root mode=0644
+  notify:
+    - restart bdii
+
+- name: Copy gip configuration files to target
+  tags: configure
+  copy: src=etc/glite/info/service/{{ item }}.conf
+        dest=/etc/glite/info/service/{{ item }}.conf backup=no
+        owner=root group=root mode=0644
+  with_items: 
+    - glite-info-service-activemq-openwire
+    - glite-info-service-activemq-openwire-ssl
+    - glite-info-service-activemq-stomp
+    - glite-info-service-activemq-stomp-ssl
+  notify:
+    - restart bdii
+
+- name: Copy gip wrapper files to target
+  tags: configure
+  copy: src=var/lib/bdii/gip/provider/{{ item }}
+        dest=/var/lib/bdii/gip/provider/{{ item }} backup=no
+        owner=ldap group=ldap mode=0755
+  with_items: 
+    - glite-info-provider-service-activemq-openwire-wrapper
+    - glite-info-provider-service-activemq-openwire-ssl-wrapper
+    - glite-info-provider-service-activemq-stomp-wrapper
+    - glite-info-provider-service-activemq-stomp-ssl-wrapper
+  notify:
+    - restart bdii
 
 - name: Create file apel-sync under /etc/cron.d
   tags: install_crons
@@ -121,12 +197,7 @@
   copy: src=usr/share/activemq/schema/MIG.xsd
         dest=/usr/share/activemq/schema/MIG.xsd backup=no
         owner=root group=root mode=0755
-
-- name: Copy /usr/share/activemq/lib/oat-activemq-patches-1.0.6.jar file
-  tags: configure
-  copy: src=usr/share/activemq/lib/oat-activemq-patches-1.0.6.jar
-        dest=/usr/share/activemq/lib/oat-activemq-patches-1.0.6.jar backup=no
-        owner=root group=root mode=0644
+#copied oat-activemq-patches-1.0.7.jar to /usr/share/activemq/lib/ manually
 
 - name: Copy /etc/activemq/login.config
   tags: configure
@@ -146,7 +217,7 @@
 
 - name: Copy /etc/activemq/jmx.password
   tags: configure
-  copy: src=etc/activemq/jmx.password
+  template: src=etc/activemq/jmx.password.j2
         dest=/etc/activemq/jmx.password backup=yes
         owner=root group=root mode=0644
   notify: 
@@ -162,9 +233,16 @@
 
 - name: Copy activemq.xml file
   tags: configure
-  tags: xml
   template: src=etc/activemq/activemq.xml.j2
             dest=/etc/activemq/activemq.xml backup=yes
+            owner=root group=root mode=0644
+  notify:
+    - restart broker
+
+- name: Copy log4j.properties file
+  tags: configure
+  template: src=etc/activemq/log4j.properties.j2
+            dest=/etc/activemq/log4j.properties backup=yes
             owner=root group=root mode=0644
   notify:
     - restart broker

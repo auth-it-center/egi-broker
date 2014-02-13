@@ -1,3 +1,7 @@
 ---
 msg_network: TEST-NWOB_or_PROD
 sitename: YOUR-SITE-NAME
+lokkit_flags: ""
+yum_flags: ""
+epel_release_url: http://ftp.ntua.gr/pub/linux/fedora-epel/6/i386/
+epel_release_name: epel-release-6-8.noarch.rpm

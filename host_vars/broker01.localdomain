@@ -4,3 +4,23 @@ brokers_in_my_network:
   - broker02.localdomain
   - broker01.otherdomain
   - broker02.otherdomain
+
+jmx_admin_pass: choose_a_good_password
+jmx_monitor_pass: choose_another_good_password
+
+guest_user_password: choose_a_good_password
+jetty_password: choose_a_good_password
+monitor_password: choose_a_good_password
+system_password: choose_a_good_password
+
+keystore_password: choose_a_good_password
+truststore_password: choose_another_good_password
+
+max_rolled_logfiles: 50
+
+jvm_max_memory: 10g
+jvm_min_memory: 2g
+
+activemq_memory_limit: 8gb
+activemq_storage_limit: 70gb
+activemq_tempio_limit: 10gb
