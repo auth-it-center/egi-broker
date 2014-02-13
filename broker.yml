@@ -4,6 +4,7 @@
   roles:
     - common
     - httpd
+    - epel
     - umd
     - ca_bundle
     - has_certificate
